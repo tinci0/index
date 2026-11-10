@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>☀️ QR Code 文字解碼小幫手</title>
+<style>
+/* 暖陽童趣配色與圓角卡片；全部內嵌，離線可用 */
+:root{--cream:#fff3dc;--paper:#fff;--pink:#cc4352;--deep:#a93645;--orange:#f28c52;--yellow:#f7c948;--mint:#23856b;--ink:#463544;--soft:#665566;--line:#ead8cc;--shadow:0 18px 42px rgba(142,88,70,.13)}
+*{box-sizing:border-box}
+input,select,textarea{max-width:100%}
+body{margin:0;min-height:100vh;font-family:"Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 10% 15%,#f7c94866,transparent 27%),radial-gradient(circle at 90% 10%,#f28c5255,transparent 26%),linear-gradient(135deg,#fff0d2,#fff9ed 50%,#ffe8dc)}
+.wrap{width:min(1060px,calc(100% - 28px));margin:auto;padding:24px 0 60px}
+nav{display:flex;align-items:center;gap:12px;background:#ffffffd9;padding:12px 20px;border-radius:999px;box-shadow:var(--shadow);font-weight:950}
+.brand{width:44px;height:44px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,var(--deep),var(--pink));color:white;font-size:23px}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;margin:22px 0}
+.card{background:#fffffff0;border:2px solid #fff;border-radius:32px;padding:clamp(20px,4vw,36px);box-shadow:var(--shadow)}
+.hero-main{background:linear-gradient(135deg,#ffffffeb,#fff0d6dd);position:relative;overflow:hidden}
+.hero-main:after{content:"";position:absolute;width:135px;height:135px;background:#f7c94866;border-radius:50%;right:-35px;top:-60px;pointer-events:none}
+.tag{display:inline-block;padding:8px 14px;border-radius:100px;background:#fff0bd;color:#805400;font-weight:900;font-size:13px}
+h1{font-size:clamp(30px,4.5vw,52px);line-height:1.22;margin:18px 0 10px;letter-spacing:.02em}
+h1 span{color:var(--pink)}
+p{color:var(--soft);line-height:1.85}
+.helper{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff2d1;border-radius:22px;padding:22px}
+.helper-emoji{font-size:65px}
+h2{font-size:24px;margin:0 0 12px}
+.workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.drop{cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;min-height:235px;text-align:center;border:3px dashed #efad84;background:#fff9ef;border-radius:22px;padding:20px;transition:.2s}
+.drop:hover,.drop.over{background:#fff0db;border-color:var(--pink)}
+.drop:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #8c79d9;outline-offset:3px}
+.drop-emoji{font-size:58px}
+.drop strong{font-size:20px}
+.muted{font-size:13px;color:#887584}
+#file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.preview-wrap{text-align:center;padding:14px;background:#fffaf0;border-radius:20px;margin:14px 0;min-height:120px}
+#preview{display:block;margin:auto;max-width:100%;max-height:250px;object-fit:contain;border-radius:12px}
+#preview[hidden]{display:none}
+.filename{overflow-wrap:anywhere;color:var(--soft);font-size:14px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+button{font-family:inherit;font-size:16px;font-weight:950;border:none;border-radius:100px;padding:14px 22px;cursor:pointer;transition:transform .15s,filter .15s}
+button:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.04)}
+button:disabled{opacity:.48;cursor:not-allowed}
+.primary{background:linear-gradient(135deg,var(--pink),var(--deep));color:#fff;box-shadow:0 10px 22px #cc43523b;flex:1}
+.light{background:#ffe2e3;color:var(--deep)}
+.mint{background:#e3f7ef;color:#17654e}
+.status{padding:14px 16px;border-radius:18px;background:#fff0bd;color:#795900;line-height:1.7;font-weight:800;margin-top:18px;overflow-wrap:anywhere}
+.status.ok{background:#e3f7ef;color:#16634b}
+.status.error{background:#ffe3ea;color:#a93645}
+textarea{width:100%;height:178px;padding:15px;border:2px solid var(--line);border-radius:18px;resize:vertical;font-size:16px;line-height:1.6;color:var(--ink);background:#fffdfa;overflow-wrap:anywhere}
+#resultBox[hidden]{display:none}
+.guide{margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.step{padding:18px;border-radius:22px;background:#ffffffd9;border:1px solid #fff;box-shadow:0 8px 18px #8e58461a}
+.step b{display:block;margin-bottom:6px}
+.step span{font-size:14px;color:var(--soft);line-height:1.7}
+footer{text-align:center;font-size:13px;margin-top:24px;color:var(--soft)}
+/* RWD：平板與手機改成單欄，按鈕有足夠觸控面積 */
+@media(max-width:760px){.hero,.workspace{grid-template-columns:1fr}.hero{gap:14px}.guide{grid-template-columns:1fr}.card{border-radius:25px}.wrap{padding-top:15px}}
+@media(max-width:430px){.wrap{width:calc(100% - 18px)}nav{border-radius:24px}.actions button{width:100%}.helper-emoji{font-size:48px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<nav><div class="brand" aria-hidden="true">☀</div><span>QR Code 文字解碼小幫手</span></nav>
+<div class="hero">
+<section class="card hero-main">
+<div class="tag">✨ HAPPY QR DECODER</div>
+<h1>掃一掃圖片，<br><span>文字就出現！</span></h1>
+<p>上傳 QR Code 圖片，點一下即可還原網址或文字。即使瀏覽器沒有 BarcodeDetector，也能透過內建 JavaScript 備援辨識。</p>
+</section>
+<aside class="card">
+<div class="helper"><div><h2>🌈 解碼小提醒</h2><p>使用正面、清楚、四角完整的 QR Code 圖片，成功率更高！</p></div><div class="helper-emoji" aria-hidden="true">📱</div></div>
+<p class="muted">🔒 圖片只在本機處理，不傳送至網路。所有程式碼均內嵌，可離線開啟。</p>
+</aside>
+</div>
+<div class="workspace">
+<section class="card" aria-labelledby="uploadTitle">
+<h2 id="uploadTitle">📷 第一步：選擇圖片</h2>
+<div id="drop" class="drop" role="button" tabindex="0" aria-label="選擇 QR Code 圖片或拖曳到此">
+<div class="drop-emoji" aria-hidden="true">🖼️</div><strong>點選或拖曳 QR Code 圖片</strong>
+<div>支援 JPG、PNG、WebP 等常見圖片</div>
+<div class="muted">最大 20 MB｜圖片只在目前裝置處理</div>
+<input id="file" type="file" accept="image/*" aria-label="選擇 QR Code 圖片">
+</div>
+<div class="preview-wrap"><img id="preview" alt="已選圖片預覽" hidden><div id="filename" class="filename">尚未選擇圖片</div></div>
+<div class="actions"><button id="decode" class="primary" type="button">🔍 開始解碼</button><button id="clear" class="light" type="button">🧹 清除</button></div>
+<div id="status" class="status info" aria-live="polite">請先選擇一張 QR Code 圖片。</div>
+</section>
+<section class="card" aria-labelledby="resultTitle">
+<h2 id="resultTitle">📝 第二步：取得文字</h2>
+<p>辨識成功後，文字會顯示在下方。網址不會自動開啟，需自行按下按鈕。</p>
+<div id="resultBox" hidden><label for="result"><strong>解碼結果</strong></label><textarea id="result" readonly spellcheck="false"></textarea></div>
+<div class="actions"><button id="copy" class="mint" type="button" disabled>📋 複製文字</button><button id="open" class="light" type="button" disabled>🔗 開啟網址</button></div>
+<div class="status info">💡 本工具支援一般的 QR Code 圖片，若照片太模糊、過度傾斜或遮住定位方框，請重新拍攝。</div>
+</section>
+</div>
+<div class="guide">
+<div class="step"><b>① 選擇圖片 📁</b><span>可選擇從電腦或手機儲存的 QR Code 圖片。</span></div>
+<div class="step"><b>② 按下解碼 🔍</b><span>自動選擇瀏覽器內建辨識或本機 JavaScript 備援方式。</span></div>
+<div class="step"><b>③ 複製使用 📋</b><span>把結果貼到文件、訊息或課堂學習活動中。</span></div>
+</div>
+<footer>☀️ 暖陽童趣 QR Code 解碼工具｜單一 HTML・可離線使用</footer>
+</main>
+<script>
+"use strict";
+/* HTML5 互動流程、圖片讀取、QRCode 解析與錯誤處理 */
+
+const $=id=>document.getElementById(id);
+const rsTable=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]];
+const alignTable=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]];
+const ALPH="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+let currentFile=null,previewURL=null,requestId=0;
+function status(message,type="info"){let el=$("status");el.textContent=message;el.className="status "+type;}
+function clearResult(){ $("result").value=""; $("copy").disabled=true;$("open").disabled=true;$("resultBox").hidden=true; }
+function chooseFile(file){
+ requestId++;clearResult();
+ if(previewURL)URL.revokeObjectURL(previewURL);
+ currentFile=null;previewURL=null;$("preview").hidden=true;
+ if(!file){status("請先選擇一張含有 QR Code 的圖片。");return;}
+ if(!file.type.startsWith("image/")){status("請選擇 PNG、JPG 或其他圖片格式。","error");return;}
+ if(file.size>20*1024*1024){status("圖片超過 20MB，請先縮小再試。","error");return;}
+ currentFile=file;previewURL=URL.createObjectURL(file);
+ $("preview").src=previewURL;$("preview").hidden=false;$("filename").textContent=file.name;
+ status("圖片已載入，按下「開始解碼」即可辨識。","info");
+}
+$("file").addEventListener("change",e=>chooseFile(e.target.files[0]));
+const drop=$("drop");
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over")});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");chooseFile(e.dataTransfer.files[0])});
+$("drop").addEventListener("click",e=>{if(e.target!==$("file"))$("file").click()});
+$("drop").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("file").click()}});
+$("clear").addEventListener("click",()=>{requestId++;$("file").value="";chooseFile(null);$("filename").textContent="尚未選擇圖片";status("已清除，可重新選擇圖片。");});
+$("copy").addEventListener("click",async()=>{
+ try{await navigator.clipboard.writeText($("result").value);status("已複製解碼文字！","ok");}
+ catch{ $("result").focus();$("result").select();status("請使用 Ctrl+C（手機可長按文字）複製。");}
+});
+$("open").addEventListener("click",()=>{let s=$("result").value.trim();if(/^https?:\/\/\S+$/i.test(s))window.open(s,"_blank","noopener,noreferrer")});
+$("decode").addEventListener("click",async()=>{
+ if(!currentFile){status("請先上傳 QR Code 圖片。","error");$("file").focus();return;}
+ const n=++requestId;const btn=$("decode");btn.disabled=true;clearResult();status("正在辨識圖片，請稍候…");
+ try{
+  const bitmap=await createImageBitmap(currentFile);
+  if(n!==requestId){bitmap.close();return;}
+  let result=null;
+  if("BarcodeDetector" in window){
+   try{const d=new BarcodeDetector({formats:["qr_code"]});let hits=await d.detect(bitmap);if(hits.length)result=hits[0].rawValue;}catch(e){}
+  }
+  if(result===null){result=decodeFallback(bitmap);}
+  bitmap.close();
+  if(n!==requestId)return;
+  if(result===null||result==="")throw new Error("沒有找到可辨識的 QR Code。請使用清晰、完整、正面拍攝的圖片，避免反光及裁切。");
+  $("result").value=result;$("resultBox").hidden=false;$("copy").disabled=false;
+  $("open").disabled=!/^https?:\/\/\S+$/i.test(result.trim());
+  status("🎉 辨識成功！已將 QR Code 轉換成文字。","ok");
+ }catch(e){if(n===requestId)status("⚠️ "+(e.message||"無法讀取圖片，請換一張試試。"),"error");}
+ finally{if(n===requestId)btn.disabled=false;}
+});
+/* 本機 JavaScript 備援解碼器：偵測定位點、取樣模組、去遮罩、解析資料。
+   支援一般清晰 QR Code；強烈透視、受損或非標準碼可能需要重新拍攝。 */
+function decodeFallback(bitmap){
+ let scale=Math.min(1,1250/Math.max(bitmap.width,bitmap.height));
+ let w=Math.max(1,Math.round(bitmap.width*scale)),h=Math.max(1,Math.round(bitmap.height*scale));
+ const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+ const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(bitmap,0,0,w,h);
+ let img=cx.getImageData(0,0,w,h).data,gray=new Uint8Array(w*h),hist=new Uint32Array(256);
+ for(let i=0;i<gray.length;i++){let p=i*4,v=(img[p]*77+img[p+1]*150+img[p+2]*29)>>8;gray[i]=v;hist[v]++;}
+ let sum=0;for(let t=0;t<256;t++)sum+=t*hist[t];
+ let bg=0,wb=0,max=-1,thr=128;
+ for(let t=0;t<256;t++){wb+=hist[t];if(!wb)continue;let wf=gray.length-wb;if(!wf)break;bg+=t*hist[t];let s=(sum*wb-bg*gray.length)**2/(wb*wf);if(s>max){max=s;thr=t;}}
+ let black=new Uint8Array(gray.length);for(let i=0;i<gray.length;i++)black[i]=gray[i]<=thr?1:0;
+ for(let inverted=0;inverted<2;inverted++){
+  let pts=findPatterns(black,w,h);
+  if(pts.length>=3){
+   let triples=bestTriples(pts);
+   for(let tri of triples){
+    for(let size of possibleSizes(tri)){
+     let matrix=sampleMatrix(black,w,h,tri,size);
+     if(!matrix)continue;
+     let val=decodeMatrix(matrix,size);
+     if(val!==null)return val;
+    }
+   }
+  }
+  for(let i=0;i<black.length;i++)black[i]^=1;
+ }
+ return null;
+}
+function matching(a){
+ let total=a.reduce((s,v)=>s+v,0);if(total<7)return null;
+ let unit=total/7;let aim=[unit,unit,unit*3,unit,unit];
+ for(let i=0;i<5;i++)if(Math.abs(a[i]-aim[i])>unit*(i===2?1.45:0.75))return null;
+ return unit;
+}
+function cross(black,w,h,x,y){
+ let runs=[0,0,0,0,0],yy=y;
+ while(yy>=0&&black[yy*w+x]===1){runs[2]++;yy--;}
+ while(yy>=0&&black[yy*w+x]===0){runs[1]++;yy--;}
+ while(yy>=0&&black[yy*w+x]===1){runs[0]++;yy--;}
+ yy=y+1;
+ while(yy<h&&black[yy*w+x]===1){runs[2]++;yy++;}
+ while(yy<h&&black[yy*w+x]===0){runs[3]++;yy++;}
+ while(yy<h&&black[yy*w+x]===1){runs[4]++;yy++;}
+ let m=matching(runs);return m?{y:y-(runs[2]-1)/2-runs[1]-runs[0]+runs[0]+runs[1]+(runs[2]-1)/2,unit:m}:null;
+}
+function findPatterns(black,w,h){
+ let found=[],step=Math.max(1,Math.floor(h/350));
+ for(let y=0;y<h;y+=step){
+  let runs=[],colors=[],prev=black[y*w],start=0;
+  for(let x=1;x<=w;x++){
+   let v=x<w?black[y*w+x]:-1;
+   if(v===prev)continue;
+   runs.push(x-start);colors.push(prev);
+   if(runs.length>5){runs.shift();colors.shift();}
+   if(runs.length===5&&colors.join("")==="10101"){
+    let unit=matching(runs);
+    if(unit){
+     let center=x-runs[4]-runs[3]-runs[2]/2,ix=Math.round(center);
+     if(ix>=0&&ix<w){
+      let c=cross(black,w,h,ix,y);
+      if(c&&Math.abs(c.unit-unit)<unit*0.95){
+       let cy=y,ct=[0,0,0],p=y;
+       while(p>=0&&black[p*w+ix]){ct[1]++;p--;}
+       while(p>=0&&!black[p*w+ix]){ct[0]++;p--;}
+       p=y+1;while(p<h&&black[p*w+ix]){ct[1]++;p++;}
+       while(p<h&&!black[p*w+ix]){ct[2]++;p++;}
+       cy=y+(ct[2]-ct[0])/2;
+       let group=found.find(z=>Math.hypot(z.x-center,z.y-cy)<Math.max(4,unit*2));
+       if(group){let k=group.n++;group.x=(group.x*k+center)/(k+1);group.y=(group.y*k+cy)/(k+1);group.unit=(group.unit*k+unit)/(k+1);}
+       else found.push({x:center,y:cy,unit,n:1});
+      }
+     }
+    }
+   }
+   prev=v;start=x;
+  }
+ }
+ return found.filter(z=>z.n>=1).sort((a,b)=>b.n-a.n).slice(0,22);
+}
+function bestTriples(p){
+ let out=[];
+ for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++)for(let k=j+1;k<p.length;k++){
+  let ar=[p[i],p[j],p[k]];
+  for(let a=0;a<3;a++){
+   let tl=ar[a],r=ar[(a+1)%3],b=ar[(a+2)%3];
+   let vx=r.x-tl.x,vy=r.y-tl.y,ux=b.x-tl.x,uy=b.y-tl.y;
+   let len1=Math.hypot(vx,vy),len2=Math.hypot(ux,uy),u=(tl.unit+r.unit+b.unit)/3;
+   if(Math.min(len1,len2)<u*11||Math.max(len1,len2)>Math.min(len1,len2)*1.45)continue;
+   let dot=Math.abs(vx*ux+vy*uy)/(len1*len2);
+   if(dot>0.33)continue;
+   if(vx*uy-vy*ux<0){let t=r;r=b;b=t;}
+   let score=(tl.n+r.n+b.n)/(1+dot*12+Math.abs(len1-len2)/Math.max(len1,len2)*12);
+   out.push({tl,tr:r,bl:b,unit:u,score});
+  }
+ }
+ return out.sort((a,b)=>b.score-a.score).slice(0,30);
+}
+function possibleSizes(t){
+ let a=Math.hypot(t.tr.x-t.tl.x,t.tr.y-t.tl.y),b=Math.hypot(t.bl.x-t.tl.x,t.bl.y-t.tl.y);
+ let v=Math.round(((a+b)/2/t.unit+7-17)/4);
+ let arr=[];for(let d of [0,-1,1,-2,2,-3,3]){let n=v+d;if(n>=1&&n<=40)arr.push(17+4*n);}
+ return [...new Set(arr)];
+}
+function sampleMatrix(b,w,h,t,n){
+ let out=new Uint8Array(n*n);
+ const a=t.tl,rx=(t.tr.x-a.x)/(n-7),ry=(t.tr.y-a.y)/(n-7),dx=(t.bl.x-a.x)/(n-7),dy=(t.bl.y-a.y)/(n-7);
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  let xx=Math.round(a.x+(x-3)*rx+(y-3)*dx),yy=Math.round(a.y+(x-3)*ry+(y-3)*dy);
+  if(xx<0||yy<0||xx>=w||yy>=h)return null;
+  out[y*n+x]=b[yy*w+xx];
+ }
+ return out;
+}
+function bchFormat(value){
+ let v=value<<10;while(v.toString(2).length>=11)v^=0x537<<(v.toString(2).length-11);
+ return ((value<<10)|v)^0x5412;
+}
+function decodeMatrix(m,n){
+ let version=(n-17)/4;if(!Number.isInteger(version)||version<1||version>40)return null;
+ let format=0;
+ for(let i=0;i<15;i++){
+  let row,col;
+  if(i<6){row=i;col=8;}
+  else if(i<8){row=i+1;col=8;}
+  else {row=n-15+i;col=8;}
+  format|=m[row*n+col]<<i;
+ }
+ let best=-1,errors=16;
+ for(let v=0;v<32;v++){
+  let diff=(bchFormat(v)^format),cnt=0;
+  while(diff){cnt+=diff&1;diff>>>=1;}
+  if(cnt<errors){errors=cnt;best=v;}
+ }
+ if(errors>3)return null;
+ const level=(best>>3),mask=best&7,func=new Uint8Array(n*n);
+ function mark(x,y){if(x>=0&&y>=0&&x<n&&y<n)func[y*n+x]=1;}
+ for(let [cx,cy] of [[3,3],[n-4,3],[3,n-4]])
+  for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)mark(cx+dx,cy+dy);
+ for(let k=0;k<n;k++){mark(6,k);mark(k,6);}
+ // 格式資訊只佔 row/column 8；其他位置可保留在功能遮罩，不影響資料區域。
+ for(let i=0;i<9;i++)for(let j=0;j<9;j++){mark(8,i);mark(i,8);}
+ for(let i=n-8;i<n;i++){mark(8,i);mark(i,8);}
+ let pos=alignTable[version-1];
+ for(let y of pos)for(let x of pos){
+  if((x===6&&y===6)||(x===6&&y===n-7)||(x===n-7&&y===6))continue;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)mark(x+dx,y+dy);
+ }
+ if(version>=7)for(let y=0;y<6;y++)for(let x=0;x<3;x++){mark(n-11+x,y);mark(y,n-11+x);}
+ let bits=[],up=true;
+ for(let col=n-1;col>=1;col-=2){
+  if(col===6)col=5;
+  for(let row=0;row<n;row++){
+   let y=up?n-1-row:row;
+   for(let dx=0;dx<2;dx++){
+    let x=col-dx;if(func[y*n+x])continue;
+    let masked;
+    switch(mask){
+     case 0:masked=(x+y)%2===0;break;
+     case 1:masked=y%2===0;break;
+     case 2:masked=x%3===0;break;
+     case 3:masked=(x+y)%3===0;break;
+     case 4:masked=(Math.floor(y/2)+Math.floor(x/3))%2===0;break;
+     case 5:masked=(x*y)%2+(x*y)%3===0;break;
+     case 6:masked=((x*y)%2+(x*y)%3)%2===0;break;
+     default:masked=(((x+y)%2+(x*y)%3)%2)===0;
+    }
+    bits.push(m[y*n+x]^(masked?1:0));
+   }
+  }
+  up=!up;
+ }
+ let words=[];for(let i=0;i+7<bits.length;i+=8){let b=0;for(let j=0;j<8;j++)b=(b<<1)|bits[i+j];words.push(b);}
+ // QR code 的糾錯等級常數：M=0,L=1,H=2,Q=3
+ const offsets={1:0,0:1,3:2,2:3};
+ let desc=rsTable[(version-1)*4+offsets[level]];
+ if(!desc)return null;
+ let blocks=[];for(let i=0;i<desc.length;i+=3)for(let j=0;j<desc[i];j++)blocks.push({total:desc[i+1],data:desc[i+2],bytes:[]});
+ let cursor=0,maxData=Math.max(...blocks.map(b=>b.data)),maxEc=Math.max(...blocks.map(b=>b.total-b.data));
+ for(let i=0;i<maxData;i++)for(let b of blocks)if(i<b.data)b.bytes[i]=words[cursor++];
+ for(let i=0;i<maxEc;i++)for(let b of blocks)if(i<b.total-b.data)cursor++;
+ if(cursor>words.length)return null;
+ let data=blocks.flatMap(b=>b.bytes);
+ return parsePayload(data,version);
+}
+function parsePayload(bytes,version){
+ let offset=0,out="",iterations=0;
+ function take(n){if(offset+n>bytes.length*8)throw Error("short");let v=0;for(let k=0;k<n;k++){v=(v<<1)|((bytes[(offset+k)>>3]>>(7-((offset+k)&7)))&1);}offset+=n;return v;}
+ try{
+  while(offset+4<=bytes.length*8&&iterations++<120){
+   let mode=take(4);if(mode===0)break;
+   if(mode===7){let e=take(8);if(e&128){take((e&192)===128?8:16);}continue;}
+   if(mode===5||mode===9)continue;
+   if(![1,2,4].includes(mode))return null;
+   let group=version<=9?0:version<=26?1:2;
+   let countBits=mode===1?[10,12,14][group]:mode===2?[9,11,13][group]:[8,16,16][group];
+   let len=take(countBits);
+   if(len<0||len>20000)return null;
+   if(mode===1){
+    while(len>=3){out+=String(take(10)).padStart(3,"0");len-=3;}
+    if(len===2)out+=String(take(7)).padStart(2,"0");
+    else if(len===1)out+=String(take(4));
+   }else if(mode===2){
+    while(len>=2){let v=take(11);out+=ALPH[Math.floor(v/45)]+ALPH[v%45];len-=2;}
+    if(len)out+=ALPH[take(6)];
+   }else{
+    let buf=[];for(let i=0;i<len;i++)buf.push(take(8));
+    out+=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+   }
+  }
+  if(!out||out.includes("undefined")||/[\u0000-\u0008\u000e-\u001f]/.test(out))return null;
+  return out;
+ }catch{return null;}
+}
+
+</script>
+</body>
+</html>
